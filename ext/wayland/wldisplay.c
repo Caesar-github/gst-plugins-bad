@@ -192,6 +192,10 @@ gst_wl_display_check_format_for_dmabuf (GstWlDisplay * display,
       return TRUE;
   }
 
+  // The dmabuf format event is deprecated.
+  if (!formats->len)
+    return TRUE;
+
   return FALSE;
 }
 
