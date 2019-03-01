@@ -1,4 +1,4 @@
-wl_req = '>= 1.4'
+wl_req = '>= 1.15'
 wl_client_dep = dependency('wayland-client', version: wl_req, required: false)
 libdrm_dep = dependency('libdrm', version: '>= 2.4.55', required: false)
 wl_protocol_dep = dependency('wayland-protocols', version: wl_req,
