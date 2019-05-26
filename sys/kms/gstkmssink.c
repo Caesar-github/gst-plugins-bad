@@ -51,8 +51,6 @@
 #include <xf86drmMode.h>
 #include <drm_fourcc.h>
 
-#include <string.h>
-
 #include "gstkmssink.h"
 #include "gstkmsutils.h"
 #include "gstkmsbufferpool.h"
@@ -486,7 +484,7 @@ mode_failed:
   }
 modesetting_failed:
   {
-    GST_ERROR_OBJECT (self, "Failed to set mode: %s", strerror (errno));
+    GST_ERROR_OBJECT (self, "Failed to set mode: %s", g_strerror (errno));
     goto bail;
   }
 }
@@ -828,7 +826,7 @@ open_failed:
   {
     GST_ELEMENT_ERROR (self, RESOURCE, OPEN_READ_WRITE,
         ("Could not open DRM module %s", GST_STR_NULL (self->devname)),
-        ("reason: %s (%d)", strerror (errno), errno));
+        ("reason: %s (%d)", g_strerror (errno), errno));
     return FALSE;
   }
 
@@ -836,7 +834,7 @@ resources_failed:
   {
     GST_ELEMENT_ERROR (self, RESOURCE, SETTINGS,
         ("drmModeGetResources failed"),
-        ("reason: %s (%d)", strerror (errno), errno));
+        ("reason: %s (%d)", g_strerror (errno), errno));
     goto bail;
   }
 
@@ -865,7 +863,7 @@ plane_resources_failed:
   {
     GST_ELEMENT_ERROR (self, RESOURCE, SETTINGS,
         ("drmModeGetPlaneResources failed"),
-        ("reason: %s (%d)", strerror (errno), errno));
+        ("reason: %s (%d)", g_strerror (errno), errno));
     goto bail;
   }
 
@@ -1319,20 +1317,20 @@ gst_kms_sink_sync (GstKMSSink * self)
   /* ERRORS */
 vblank_failed:
   {
-    GST_WARNING_OBJECT (self, "drmWaitVBlank failed: %s (%d)", strerror (-ret),
-        ret);
+    GST_WARNING_OBJECT (self, "drmWaitVBlank failed: %s (%d)",
+        g_strerror (errno), errno);
     return FALSE;
   }
 pageflip_failed:
   {
     GST_WARNING_OBJECT (self, "drmModePageFlip failed: %s (%d)",
-        strerror (-ret), ret);
+        g_strerror (errno), errno);
     return FALSE;
   }
 event_failed:
   {
-    GST_ERROR_OBJECT (self, "drmHandleEvent failed: %s (%d)", strerror (-ret),
-        ret);
+    GST_ERROR_OBJECT (self, "drmHandleEvent failed: %s (%d)",
+        g_strerror (errno), errno);
     return FALSE;
   }
 }
@@ -1662,7 +1660,7 @@ set_plane_failed:
         result.w, result.h, src.x, src.y, src.w, src.h, dst.x, dst.y, dst.w,
         dst.h);
     GST_ELEMENT_ERROR (self, RESOURCE, FAILED,
-        (NULL), ("drmModeSetPlane failed: %s (%d)", strerror (-ret), ret));
+        (NULL), ("drmModeSetPlane failed: %s (%d)", g_strerror (errno), errno));
     goto bail;
   }
 no_disp_ratio:
