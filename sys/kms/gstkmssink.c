@@ -50,6 +50,7 @@
 #include <xf86drm.h>
 #include <xf86drmMode.h>
 #include <drm_fourcc.h>
+#include <string.h>
 
 #include "gstkmssink.h"
 #include "gstkmsutils.h"
