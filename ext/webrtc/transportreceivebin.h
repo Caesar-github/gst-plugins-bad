@@ -46,7 +46,11 @@ struct _TransportReceiveBin
   gboolean                   rtcp_mux;
 
   GstPad                    *rtp_src;
+  gulong                     rtp_src_probe_id;
+  GstPad                    *rtcp_src;
+  gulong                     rtcp_src_probe_id;
   struct pad_block          *rtp_block;
+  struct pad_block          *rtcp_block;
   GMutex                     pad_block_lock;
   GCond                      pad_block_cond;
   ReceiveState               receive_state;
