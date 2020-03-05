@@ -12,7 +12,7 @@ DEB_DH_AUTORECONF_ARGS += --as-needed
 CFLAGS += -Wno-error
 CXXFLAGS += -Wno-error
 LDFLAGS += -Wl,-z,defs -Wl,-O1 -Wl,--as-needed
-DEB_MAKE_CHECK_TARGET = check || true
+# DEB_MAKE_CHECK_TARGET = check || true
 
 # this is for compatibility with dpkg-dev < 1.13.5, see
 # <http://lists.debian.org/debian-devel-announce/2005/06/msg00010.html>
