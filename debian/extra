@@ -17,6 +17,9 @@ case $1 in
       mpeg2enc)
         echo "libmjpegtools-dev | mjpegtools-dev"
         ;;
+      kms)
+        echo "libdrm-dev"
+        ;;
       *)
         echo "ERROR invalid plugin: add your plugin to debian/extra"
         exit 1
@@ -83,6 +86,23 @@ Description: MJPEG Tools plugin for GStreamer
  compressed video stream.
  .
   MJPEG Tools Homepage: http://mjpeg.sourceforge.net/
+
+EOF
+;;
+      kms)
+cat << EOF
+Package: @GST_PKGNAME@-kms
+Architecture: any
+Depends: \${shlibs:Depends}, \${misc:Depends}, @GST_LIB@
+XB-GStreamer-Version: \${gstreamer:Version}
+XB-GStreamer-Elements: \${gstreamer:Elements}
+XB-GStreamer-URI-Sources: \${gstreamer:URISources}
+XB-GStreamer-URI-Sinks: \${gstreamer:URISinks}
+XB-GStreamer-Encoders: \${gstreamer:Encoders}
+XB-GStreamer-Decoders: \${gstreamer:Decoders}
+Provides: \${gstreamer:Provides}
+Description: kmssink plugin for GStreamer
+  This GStreamer plugin renders video frames directly in a plane of a DRM device.
 
 EOF
 ;;
