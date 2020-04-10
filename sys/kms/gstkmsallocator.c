@@ -151,6 +151,12 @@ extrapolate_stride (const GstVideoFormatInfo * finfo, gint plane, gint stride)
     case GST_VIDEO_FORMAT_NV16:
     case GST_VIDEO_FORMAT_NV61:
     case GST_VIDEO_FORMAT_NV24:
+    case GST_VIDEO_FORMAT_P010_10LE:
+#ifdef GST_VIDEO_FORMAT_P010_10BE
+    case GST_VIDEO_FORMAT_P010_10BE:
+    case GST_VIDEO_FORMAT_P016_LE:
+    case GST_VIDEO_FORMAT_P016_BE:
+#endif
       estride = (plane == 0 ? 1 : 2) *
           GST_VIDEO_FORMAT_INFO_SCALE_WIDTH (finfo, plane, stride);
       break;
