@@ -53,6 +53,8 @@
 #include <string.h>
 
 #include <fcntl.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "gstkmssink.h"
 #include "gstkmsutils.h"
@@ -717,6 +719,76 @@ gst_kms_sink_update_plane_properties (GstKMSSink * self)
   gst_kms_sink_update_properties (&iter, self->plane_props);
 }
 
+static void
+gst_kms_sink_configure_plane_zpos (GstKMSSink * self, gboolean restore)
+{
+  drmModeObjectPropertiesPtr props = NULL;
+  drmModePropertyPtr prop = NULL;
+  drmModeResPtr res = NULL;
+  gchar *buf;
+  int i;
+  guint64 min, max, zpos;
+
+  if (self->plane_id <= 0)
+    return;
+
+  if (drmSetClientCap (self->fd, DRM_CLIENT_CAP_ATOMIC, 1))
+    return;
+
+  res = drmModeGetResources (self->fd);
+  if (!res)
+    return;
+
+  props = drmModeObjectGetProperties (self->fd, self->plane_id,
+      DRM_MODE_OBJECT_PLANE);
+  if (!props)
+    goto out;
+
+  for (i = 0; i < props->count_props; i++) {
+    prop = drmModeGetProperty (self->fd, props->props[i]);
+    if (prop && !strcmp (prop->name, "ZPOS"))
+      break;
+    drmModeFreeProperty (prop);
+    prop = NULL;
+  }
+
+  if (!prop)
+    goto out;
+
+  min = prop->values[0];
+  max = prop->values[1];
+
+  if (restore) {
+    if (self->saved_zpos < 0)
+      goto out;
+
+    zpos = self->saved_zpos;
+  } else {
+    zpos = min + 1;
+
+    buf = getenv ("KMSSINK_PLANE_ZPOS");
+    if (buf)
+      zpos = atoi (buf);
+    else if (getenv ("KMSSINK_PLANE_ON_TOP"))
+      zpos = max;
+    else if (getenv ("KMSSINK_PLANE_ON_BOTTOM"))
+      zpos = min;
+  }
+
+  GST_INFO_OBJECT (self, "set plane zpos = %lu (%lu~%lu)", zpos, min, max);
+
+  if (self->saved_zpos < 0)
+    self->saved_zpos = props->prop_values[i];
+
+  drmModeObjectSetProperty (self->fd, self->plane_id,
+      DRM_MODE_OBJECT_PLANE, props->props[i], zpos);
+
+out:
+  drmModeFreeProperty (prop);
+  drmModeFreeObjectProperties (props);
+  drmModeFreeResources (res);
+}
+
 static gboolean
 gst_kms_sink_start (GstBaseSink * bsink)
 {
@@ -800,6 +872,8 @@ retry_find_plane:
   self->conn_id = conn->connector_id;
   self->crtc_id = crtc->crtc_id;
   self->plane_id = plane->plane_id;
+
+  gst_kms_sink_configure_plane_zpos (self, FALSE);
 
   GST_INFO_OBJECT (self, "connector id = %d / crtc id = %d / plane id = %d",
       self->conn_id, self->crtc_id, self->plane_id);
@@ -934,6 +1008,11 @@ gst_kms_sink_stop (GstBaseSink * bsink)
 
   if (self->allocator)
     gst_kms_allocator_clear_cache (self->allocator);
+
+  if (self->saved_zpos >= 0) {
+    gst_kms_sink_configure_plane_zpos (self, TRUE);
+    self->saved_zpos = -1;
+  }
 
   gst_buffer_replace (&self->last_buffer, NULL);
   gst_caps_replace (&self->allowed_caps, NULL);
@@ -1932,6 +2011,7 @@ gst_kms_sink_init (GstKMSSink * sink)
   sink->fd = -1;
   sink->conn_id = -1;
   sink->plane_id = -1;
+  sink->saved_zpos = -1;
   sink->can_scale = TRUE;
   gst_poll_fd_init (&sink->pollfd);
   sink->poll = gst_poll_new (TRUE);
