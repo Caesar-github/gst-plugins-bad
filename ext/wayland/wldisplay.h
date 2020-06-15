@@ -55,8 +55,8 @@ struct _GstWlDisplay
   struct wl_compositor *compositor;
   struct wl_subcompositor *subcompositor;
   struct wl_shell *wl_shell;
-  struct zxdg_shell_v6 *xdg_shell;
   struct zwp_fullscreen_shell_v1 *fullscreen_shell;
+  struct zxdg_shell_v6 *xdg_shell;
   struct wl_shm *shm;
   struct wp_viewporter *viewporter;
   struct zwp_linux_dmabuf_v1 *dmabuf;

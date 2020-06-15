@@ -78,7 +78,7 @@ handle_xdg_toplevel_configure (void *data,
   if (width <= 0 || height <= 0)
     return;
 
-  gst_wl_window_set_render_rectangle (window, 0, 0, width, height);
+  gst_wl_window_set_render_rectangle (window, 0, 0, width, height, FALSE);
 }
 
 static const struct zxdg_toplevel_v6_listener xdg_toplevel_listener = {
@@ -122,7 +122,7 @@ handle_configure (void *data, struct wl_shell_surface *wl_shell_surface,
   if (width == 0 || height == 0)
     return;
 
-  gst_wl_window_set_render_rectangle (window, 0, 0, width, height);
+  gst_wl_window_set_render_rectangle (window, 0, 0, width, height, FALSE);
 }
 
 static void
@@ -263,7 +263,8 @@ gst_wl_window_ensure_fullscreen (GstWlWindow * window, gboolean fullscreen)
 
 GstWlWindow *
 gst_wl_window_new_toplevel (GstWlDisplay * display, const GstVideoInfo * info,
-    gboolean fullscreen, GMutex * render_lock)
+    gboolean fullscreen, GMutex * render_lock,
+    GstVideoRectangle * render_rectangle)
 {
   GstWlWindow *window;
 
@@ -325,11 +326,23 @@ gst_wl_window_new_toplevel (GstWlDisplay * display, const GstVideoInfo * info,
 
   /* render_rectangle is already set via toplevel_configure in
    * fullscreen mode */
-  if (!fullscreen) {
+  if (fullscreen)
+    return window;
+
+  if (render_rectangle->w || render_rectangle->h) {
+    /* apply cached position and size */
+    GST_DEBUG ("Applying window position (%d, %d)",
+        render_rectangle->x, render_rectangle->y);
+    gst_wl_window_set_render_rectangle (window, render_rectangle->x,
+                                        render_rectangle->y,
+                                        render_rectangle->w,
+                                        render_rectangle->h, TRUE);
+  } else {
     /* set the initial size to be the same as the reported video size */
     gint width =
         gst_util_uint64_scale_int_round (info->width, info->par_n, info->par_d);
-    gst_wl_window_set_render_rectangle (window, 0, 0, width, info->height);
+    gst_wl_window_set_render_rectangle (window, 0, 0,
+                                        width, info->height, FALSE);
   }
 
   return window;
@@ -540,7 +553,7 @@ gst_wl_window_update_borders (GstWlWindow * window)
 
 void
 gst_wl_window_set_render_rectangle (GstWlWindow * window, gint x, gint y,
-    gint w, gint h)
+    gint w, gint h, gboolean with_position)
 {
   g_return_if_fail (window != NULL);
 
@@ -548,6 +561,10 @@ gst_wl_window_set_render_rectangle (GstWlWindow * window, gint x, gint y,
   window->render_rectangle.y = y;
   window->render_rectangle.w = w;
   window->render_rectangle.h = h;
+
+  /* try to position the xdg surface with hacked wayland server API */
+  if (with_position && window->xdg_surface)
+    zxdg_surface_v6_set_window_geometry (window->xdg_surface, x, y, 0, 0);
 
   /* position the area inside the parent - needs a parent commit to apply */
   if (window->area_subsurface)

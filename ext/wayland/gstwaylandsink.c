@@ -62,7 +62,8 @@ enum
 {
   PROP_0,
   PROP_DISPLAY,
-  PROP_FULLSCREEN
+  PROP_FULLSCREEN,
+  PROP_LAST
 };
 
 GST_DEBUG_CATEGORY (gstwayland_debug);
@@ -208,6 +209,8 @@ gst_wayland_sink_class_init (GstWaylandSinkClass * klass)
       g_param_spec_boolean ("fullscreen", "Fullscreen",
           "Whether the surface should be made fullscreen ", FALSE,
           G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+
+  gst_video_overlay_install_properties (gobject_class, PROP_LAST);
 }
 
 static void
@@ -270,7 +273,8 @@ gst_wayland_sink_set_property (GObject * object,
       GST_OBJECT_UNLOCK (sink);
       break;
     default:
-      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+      if (!gst_video_overlay_set_property (object, PROP_LAST, prop_id, value))
+        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
   }
 }
@@ -700,7 +704,8 @@ gst_wayland_sink_show_frame (GstVideoSink * vsink, GstBuffer * buffer)
     if (!sink->window) {
       /* if we were not provided a window, create one ourselves */
       sink->window = gst_wl_window_new_toplevel (sink->display,
-          &sink->video_info, sink->fullscreen, &sink->render_lock);
+          &sink->video_info, sink->fullscreen, &sink->render_lock,
+          &sink->render_rectangle);
       g_signal_connect_object (sink->window, "closed",
           G_CALLBACK (on_window_closed), sink, 0);
     }
@@ -972,16 +977,19 @@ gst_wayland_sink_set_render_rectangle (GstVideoOverlay * overlay,
   g_return_if_fail (sink != NULL);
 
   g_mutex_lock (&sink->render_lock);
-  if (!sink->window) {
-    g_mutex_unlock (&sink->render_lock);
-    GST_WARNING_OBJECT (sink,
-        "set_render_rectangle called without window, ignoring");
-    return;
-  }
 
-  GST_DEBUG_OBJECT (sink, "window geometry changed to (%d, %d) %d x %d",
-      x, y, w, h);
-  gst_wl_window_set_render_rectangle (sink->window, x, y, w, h);
+  if (sink->window) {
+    GST_DEBUG_OBJECT (sink, "window geometry changed to (%d, %d) %d x %d",
+        x, y, w, h);
+    gst_wl_window_set_render_rectangle (sink->window, x, y, w, h, TRUE);
+  } else {
+    GST_DEBUG_OBJECT (sink, "caching window geometry (%d, %d) %d x %d",
+        x, y, w, h);
+    sink->render_rectangle.x = x;
+    sink->render_rectangle.y = y;
+    sink->render_rectangle.w = w;
+    sink->render_rectangle.h = h;
+  }
 
   g_mutex_unlock (&sink->render_lock);
 }
