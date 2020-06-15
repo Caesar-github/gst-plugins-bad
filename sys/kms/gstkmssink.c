@@ -52,6 +52,8 @@
 #include <drm_fourcc.h>
 #include <string.h>
 
+#include <fcntl.h>
+
 #include "gstkmssink.h"
 #include "gstkmsutils.h"
 #include "gstkmsbufferpool.h"
@@ -726,6 +728,10 @@ gst_kms_sink_start (GstBaseSink * bsink)
     self->fd = drmOpen (self->devname, self->bus_id);
   else
     self->fd = kms_open (&self->devname);
+
+  if (self->fd < 0)
+    self->fd = open ("/dev/dri/card0", O_RDWR);
+
   if (self->fd < 0)
     goto open_failed;
 
@@ -1631,6 +1637,9 @@ retry_set_plane:
     src.w = GST_VIDEO_INFO_WIDTH (vinfo);
     src.h = GST_VIDEO_INFO_HEIGHT (vinfo);
   }
+
+  if ((GST_VIDEO_INFO_FORMAT(&self->vinfo) == GST_VIDEO_FORMAT_P010_10LE) && (src.w >= 3840))
+    src.h /=2;
 
   /* handle out of screen case */
   if ((result.x + result.w) > self->hdisplay)
