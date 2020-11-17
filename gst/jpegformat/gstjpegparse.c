@@ -151,7 +151,7 @@ gst_jpeg_parse_class_init (GstJpegParseClass * klass)
 
   gst_element_class_set_static_metadata (gstelement_class,
       "JPEG stream parser",
-      "Video/Parser",
+      "Codec/Parser/Video/Image",
       "Parse JPEG images into single-frame buffers",
       "Arnout Vandecappelle (Essensium/Mind) <arnout@mind.be>");
 
