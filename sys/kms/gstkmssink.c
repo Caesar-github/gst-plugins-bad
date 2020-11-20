@@ -1778,6 +1778,8 @@ retry_set_plane:
   }
 
 sync_frame:
+  /* HACK: Disable vsync might cause tearing */
+  if (!getenv("KMSSINK_DISABLE_VSYNC"))
   /* Wait for the previous frame to complete redraw */
   if (!gst_kms_sink_sync (self)) {
     GST_OBJECT_UNLOCK (self);
