@@ -417,7 +417,8 @@ gst_wl_window_resize_video_surface (GstWlWindow * window, gboolean commit)
 
   if (window->video_viewport) {
     gst_video_sink_center_rect (src, dst, &res, TRUE);
-    wp_viewport_set_destination (window->video_viewport, res.w, res.h);
+    if (res.w > 0 && res.h > 0)
+      wp_viewport_set_destination (window->video_viewport, res.w, res.h);
   } else {
     gst_video_sink_center_rect (src, dst, &res, FALSE);
   }
@@ -571,7 +572,7 @@ gst_wl_window_set_render_rectangle (GstWlWindow * window, gint x, gint y,
     wl_subsurface_set_position (window->area_subsurface, x, y);
 
   /* change the size of the area */
-  if (window->area_viewport)
+  if (window->area_viewport && w > 0 && h > 0)
     wp_viewport_set_destination (window->area_viewport, w, h);
 
   gst_wl_window_update_borders (window);
