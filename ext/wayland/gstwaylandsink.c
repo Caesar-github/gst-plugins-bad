@@ -859,10 +859,14 @@ render:
 
 no_window_size:
   {
+#if 0 /* HACK: Drop frame when window not ready */
     GST_ELEMENT_ERROR (sink, RESOURCE, WRITE,
         ("Window has no size set"),
         ("Make sure you set the size after calling set_window_handle"));
     ret = GST_FLOW_ERROR;
+#else
+    GST_WARNING_OBJECT (sink, "Window has no size set");
+#endif
     goto done;
   }
 no_buffer:
