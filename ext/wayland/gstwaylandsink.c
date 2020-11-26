@@ -631,10 +631,15 @@ frame_redraw_callback (void *data, struct wl_callback *callback, uint32_t time)
 
   g_mutex_lock (&sink->render_lock);
   sink->redraw_pending = FALSE;
-  sink->window->callback = NULL;
-  g_mutex_unlock (&sink->render_lock);
 
+  if (!sink->window) {
+    g_mutex_unlock (&sink->render_lock);
+    return;
+  }
+
+  sink->window->callback = NULL;
   wl_callback_destroy (callback);
+  g_mutex_unlock (&sink->render_lock);
 }
 
 static const struct wl_callback_listener frame_callback_listener = {
@@ -1008,7 +1013,7 @@ gst_wayland_sink_expose (GstVideoOverlay * overlay)
   GST_DEBUG_OBJECT (sink, "expose");
 
   g_mutex_lock (&sink->render_lock);
-  if (sink->last_buffer && !sink->redraw_pending) {
+  if (sink->window && sink->last_buffer && !sink->redraw_pending) {
     GST_DEBUG_OBJECT (sink, "redrawing last buffer");
     render_last_buffer (sink, TRUE);
   }
