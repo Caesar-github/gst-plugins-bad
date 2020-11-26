@@ -17,7 +17,8 @@ if use_wayland
          'linux-dmabuf-unstable-v1-protocol.c', 'linux-dmabuf-unstable-v1-client-protocol.h'],
         ['/unstable/fullscreen-shell/fullscreen-shell-unstable-v1.xml',
          'fullscreen-shell-unstable-v1-protocol.c', 'fullscreen-shell-unstable-v1-client-protocol.h'],
-        ['/stable/xdg-shell/xdg-shell.xml', 'xdg-shell-protocol.c', 'xdg-shell-client-protocol.h'],
+        ['/unstable/xdg-shell/xdg-shell-unstable-v6.xml',
+         'xdg-shell-unstable-v6-protocol.c', 'xdg-shell-unstable-v6-client-protocol.h'],
     ]
     protocols_files = []
 

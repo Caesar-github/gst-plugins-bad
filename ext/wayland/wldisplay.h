@@ -24,7 +24,7 @@
 #include <gst/gst.h>
 #include <gst/video/video.h>
 #include <wayland-client.h>
-#include "xdg-shell-client-protocol.h"
+#include "xdg-shell-unstable-v6-client-protocol.h"
 #include "viewporter-client-protocol.h"
 #include "linux-dmabuf-unstable-v1-client-protocol.h"
 #include "fullscreen-shell-unstable-v1-client-protocol.h"
@@ -55,7 +55,7 @@ struct _GstWlDisplay
   struct wl_compositor *compositor;
   struct wl_subcompositor *subcompositor;
   struct wl_shell *wl_shell;
-  struct xdg_wm_base *xdg_wm_base;
+  struct zxdg_shell_v6 *xdg_shell;
   struct zwp_fullscreen_shell_v1 *fullscreen_shell;
   struct wl_shm *shm;
   struct wp_viewporter *viewporter;

@@ -46,7 +46,7 @@ G_DEFINE_TYPE (GstWlWindow, gst_wl_window, G_TYPE_OBJECT);
 static void gst_wl_window_finalize (GObject * gobject);
 
 static void
-handle_xdg_toplevel_close (void *data, struct xdg_toplevel *xdg_toplevel)
+handle_xdg_toplevel_close (void *data, struct zxdg_toplevel_v6 *xdg_toplevel)
 {
   GstWlWindow *window = data;
 
@@ -55,8 +55,9 @@ handle_xdg_toplevel_close (void *data, struct xdg_toplevel *xdg_toplevel)
 }
 
 static void
-handle_xdg_toplevel_configure (void *data, struct xdg_toplevel *xdg_toplevel,
-    int32_t width, int32_t height, struct wl_array *states)
+handle_xdg_toplevel_configure (void *data,
+    struct zxdg_toplevel_v6 *xdg_toplevel, int32_t width, int32_t height,
+    struct wl_array *states)
 {
   GstWlWindow *window = data;
   const uint32_t *state;
@@ -66,10 +67,10 @@ handle_xdg_toplevel_configure (void *data, struct xdg_toplevel *xdg_toplevel,
 
   wl_array_for_each (state, states) {
     switch (*state) {
-      case XDG_TOPLEVEL_STATE_FULLSCREEN:
-      case XDG_TOPLEVEL_STATE_MAXIMIZED:
-      case XDG_TOPLEVEL_STATE_RESIZING:
-      case XDG_TOPLEVEL_STATE_ACTIVATED:
+      case ZXDG_TOPLEVEL_V6_STATE_FULLSCREEN:
+      case ZXDG_TOPLEVEL_V6_STATE_MAXIMIZED:
+      case ZXDG_TOPLEVEL_V6_STATE_RESIZING:
+      case ZXDG_TOPLEVEL_V6_STATE_ACTIVATED:
         break;
     }
   }
@@ -80,17 +81,17 @@ handle_xdg_toplevel_configure (void *data, struct xdg_toplevel *xdg_toplevel,
   gst_wl_window_set_render_rectangle (window, 0, 0, width, height);
 }
 
-static const struct xdg_toplevel_listener xdg_toplevel_listener = {
+static const struct zxdg_toplevel_v6_listener xdg_toplevel_listener = {
   handle_xdg_toplevel_configure,
   handle_xdg_toplevel_close,
 };
 
 static void
-handle_xdg_surface_configure (void *data, struct xdg_surface *xdg_surface,
+handle_xdg_surface_configure (void *data, struct zxdg_surface_v6 *xdg_surface,
     uint32_t serial)
 {
   GstWlWindow *window = data;
-  xdg_surface_ack_configure (xdg_surface, serial);
+  zxdg_surface_v6_ack_configure (xdg_surface, serial);
 
   g_mutex_lock (&window->configure_mutex);
   window->configured = TRUE;
@@ -98,7 +99,7 @@ handle_xdg_surface_configure (void *data, struct xdg_surface *xdg_surface,
   g_mutex_unlock (&window->configure_mutex);
 }
 
-static const struct xdg_surface_listener xdg_surface_listener = {
+static const struct zxdg_surface_v6_listener xdg_surface_listener = {
   handle_xdg_surface_configure,
 };
 
@@ -166,9 +167,9 @@ gst_wl_window_finalize (GObject * gobject)
     wl_shell_surface_destroy (self->wl_shell_surface);
 
   if (self->xdg_toplevel)
-    xdg_toplevel_destroy (self->xdg_toplevel);
+    zxdg_toplevel_v6_destroy (self->xdg_toplevel);
   if (self->xdg_surface)
-    xdg_surface_destroy (self->xdg_surface);
+    zxdg_surface_v6_destroy (self->xdg_surface);
 
   if (self->video_viewport)
     wp_viewport_destroy (self->video_viewport);
@@ -246,11 +247,11 @@ gst_wl_window_ensure_fullscreen (GstWlWindow * window, gboolean fullscreen)
   if (!window)
     return;
 
-  if (window->display->xdg_wm_base) {
+  if (window->display->xdg_shell) {
     if (fullscreen)
-      xdg_toplevel_set_fullscreen (window->xdg_toplevel, NULL);
+      zxdg_toplevel_v6_set_fullscreen (window->xdg_toplevel, NULL);
     else
-      xdg_toplevel_unset_fullscreen (window->xdg_toplevel);
+      zxdg_toplevel_v6_unset_fullscreen (window->xdg_toplevel);
   } else {
     if (fullscreen)
       wl_shell_surface_set_fullscreen (window->wl_shell_surface,
@@ -269,24 +270,24 @@ gst_wl_window_new_toplevel (GstWlDisplay * display, const GstVideoInfo * info,
   window = gst_wl_window_new_internal (display, render_lock);
 
   /* Check which protocol we will use (in order of preference) */
-  if (display->xdg_wm_base) {
+  if (display->xdg_shell) {
     /* First create the XDG surface */
-    window->xdg_surface = xdg_wm_base_get_xdg_surface (display->xdg_wm_base,
+    window->xdg_surface = zxdg_shell_v6_get_xdg_surface (display->xdg_shell,
         window->area_surface);
     if (!window->xdg_surface) {
       GST_ERROR ("Unable to get xdg_surface");
       goto error;
     }
-    xdg_surface_add_listener (window->xdg_surface, &xdg_surface_listener,
+    zxdg_surface_v6_add_listener (window->xdg_surface, &xdg_surface_listener,
         window);
 
     /* Then the toplevel */
-    window->xdg_toplevel = xdg_surface_get_toplevel (window->xdg_surface);
+    window->xdg_toplevel = zxdg_surface_v6_get_toplevel (window->xdg_surface);
     if (!window->xdg_toplevel) {
       GST_ERROR ("Unable to get xdg_toplevel");
       goto error;
     }
-    xdg_toplevel_add_listener (window->xdg_toplevel,
+    zxdg_toplevel_v6_add_listener (window->xdg_toplevel,
         &xdg_toplevel_listener, window);
 
     gst_wl_window_ensure_fullscreen (window, fullscreen);
@@ -317,14 +318,14 @@ gst_wl_window_new_toplevel (GstWlDisplay * display, const GstVideoInfo * info,
         window->area_surface, ZWP_FULLSCREEN_SHELL_V1_PRESENT_METHOD_ZOOM,
         NULL);
   } else {
-    GST_ERROR ("Unable to use either wl_shell, xdg_wm_base or "
+    GST_ERROR ("Unable to use either wl_shell, xdg_shell or "
         "zwp_fullscreen_shell.");
     goto error;
   }
 
   /* render_rectangle is already set via toplevel_configure in
-   * xdg_shell fullscreen mode */
-  if (!(display->xdg_wm_base && fullscreen)) {
+   * fullscreen mode */
+  if (!fullscreen) {
     /* set the initial size to be the same as the reported video size */
     gint width =
         gst_util_uint64_scale_int_round (info->width, info->par_n, info->par_d);
@@ -382,7 +383,7 @@ gst_wl_window_is_toplevel (GstWlWindow * window)
 {
   g_return_val_if_fail (window != NULL, FALSE);
 
-  if (window->display->xdg_wm_base)
+  if (window->display->xdg_shell)
     return (window->xdg_toplevel != NULL);
   else
     return (window->wl_shell_surface != NULL);
